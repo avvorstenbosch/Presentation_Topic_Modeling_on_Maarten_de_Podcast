@@ -1,0 +1,1173 @@
+---
+title: "Topic Modeling op de Maarten van Rossem Podcast"
+subtitle: "'*Attention is all you need*'"
+author: "Alex van Vorstenbosch"
+footer: "avvorstenbosch.github.io/Maarten_De_Podcast_Analysis"
+title-slide-attributes:
+  data-background-image: ./figures/whisper_transformer.png
+  data-background-opacity: "0.5"
+  data-background-size: 950px auto
+  data-background-repeat: repeat
+institute: "NZa"
+date: "9-6-2023"
+format:
+    revealjs:
+        slide-number: true
+        chalkboard: 
+            buttons: false
+        preview-links: auto
+        theme: night        
+        width: 1600
+        height: 900
+css: style.css
+execute:
+    warning: false
+    error: false
+---
+
+## Aanleiding
+::: {.incremental style="text-align: center; margin-top: 1em"}
+-   [OpenAI WHISPER - Transcriptie via Transformers ](https://openai.com/research/whisper){preview-link="true" style="text-align: center"}
+-   Open Source^[https://github.com/openai/whisper]
+-   Competitieve performance
+-   Multi-language, waaronder Nederlands
+:::
+
+## Daar kwam een idee...
+:::: {.columns}
+::: {.column width="70%"}
+:::{.incremental}
+- Mijn meest beluisterde podcast.
+- Kan ik daar niet een text-analyse van maken?
+:::
+::::{.inline-fragment}
+:::{.fragment} 
+- Doel: 
+:::
+:::{.fragment} 
+in de podcast komen!
+:::
+::::
+:::
+
+
+::: {.column width="30%"}
+![](./figures/maarten-podcast.jpg){fig-align="right"}
+:::
+::::
+
+## 
+:::{.center-xy}
+***Attention is all you need***
+:::
+
+## One-hot Encoding {.smaller}
+
+:::{data-id="words"}
+$$
+\begin{array}{c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c}
+\text{A} & \text{dry} & \text{well!} & \text{Well} & \text{done!} \\
+\begin{pmatrix}
+1\\
+0\\
+0\\
+0
+\end{pmatrix} & \begin{pmatrix}
+0\\
+1\\
+0\\
+0
+\end{pmatrix} & \begin{pmatrix}
+0\\
+0\\
+1\\
+0
+\end{pmatrix} & \begin{pmatrix}
+0\\
+0\\
+1\\
+0
+\end{pmatrix} & \begin{pmatrix}
+0\\
+0\\
+0\\
+1
+\end{pmatrix}
+\end{array}
+$$
+:::
+:::{.incremental}
+- Sparse vectors van Dimensie: Unieke woorden
+- 3 van de 4 getallen voegen geen informatie toe.
+- 'Duur' voor grote datasets.
+- Kan dit beter?
+:::
+
+## Word embeddings{.smaller}
+
+:::{data-id="words"}
+$$
+\begin{array}{c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c}
+\text{A} & \text{dry} & \text{well!} & \text{Well} & \text{done!} \\
+\begin{pmatrix}
+\phantom{-}0.33\\
+-0.51\\
+\phantom{-}0.83\\
+\phantom{-}0.12
+\end{pmatrix} & \begin{pmatrix}
+\phantom{-}0.97\\
+-0.15\\
+-0.11\\
+\phantom{-}0.85
+\end{pmatrix} & \begin{pmatrix}
+\phantom{-}0.94\\
+\phantom{-}0.79\\
+-0.34\\
+\phantom{-}0.35
+\end{pmatrix} & \begin{pmatrix}
+\phantom{-}0.94\\
+\phantom{-}0.79\\
+-0.34\\
+\phantom{-}0.35
+\end{pmatrix} & \begin{pmatrix}
+-0.02\\
+\phantom{-}0.69\\
+\phantom{-}0.54\\
+-0.12
+\end{pmatrix}
+\end{array}
+$$
+:::
+:::{.incremental}
+- Dense vectors van Dimensie N (hyperparameter - vaak 768)
+- Latent embedding ![](./figures/word-embeddings.png){.absolute left="65%" top="55%" width="auto" height="400px"}
+- Alle getallen zijn informatief
+- Semantisch-betekenisvol: 
+:::
+::::{.inline-fragment style="margin-left: 25%; text-align: center"}
+:::{.fragment} 
+Koning - Man + Vrouw = 
+:::
+:::{.fragment} 
+Koningin 
+:::
+::::
+:::{.incremental}
+- maar dit levert nog steeds problemen...
+:::
+
+## Word embeddings{.smaller}
+
+$$
+\begin{array}{c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c}
+\text{A} & \text{dry} & \text{well!} & \text{Well} & \text{done!} \\
+\begin{pmatrix}
+\phantom{-}0.33\\
+-0.51\\
+\phantom{-}0.83\\
+\phantom{-}0.12
+\end{pmatrix} & \begin{pmatrix}
+\phantom{-}0.97\\
+-0.15\\
+-0.11\\
+\phantom{-}0.85
+\end{pmatrix} & \color{red}{\begin{pmatrix}
+\phantom{-}0.94\\
+\phantom{-}0.79\\
+-0.34\\
+\phantom{-}0.35
+\end{pmatrix}} & \color{red}{\begin{pmatrix}
+\phantom{-}0.94\\
+\phantom{-}0.79\\
+-0.34\\
+\phantom{-}0.35
+\end{pmatrix}} & \begin{pmatrix}
+-0.02\\
+\phantom{-}0.69\\
+\phantom{-}0.54\\
+-0.12
+\end{pmatrix}
+\end{array}
+$$
+
+- Dense vectors
+- Latent embedding ![](./figures/word-embeddings.png){.absolute left="65%" top="55%" width="auto" height="400px"}
+- Alle getallen zijn informatief
+- Semantisch-betekenisvol: 
+
+:::{style="text-align: center"}
+Koning - Man + Vrouw = Koningin 
+:::
+ 
+- maar dit levert nog steeds problemen...
+
+## Transformer Embeddings {.smaller}
+:::{data-id="words"}
+$$
+\begin{array}{c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c@{\hspace{0.3cm}}c}
+\text{A} & \text{dry} & \text{well!} & \text{Well} & \text{done!} \\
+\begin{pmatrix}
+\phantom{-}0.33\\
+-0.51\\
+\phantom{-}0.83\\
+\phantom{-}0.12
+\end{pmatrix} & \begin{pmatrix}
+\phantom{-}0.97\\
+-0.15\\
+-0.11\\
+\phantom{-}0.75
+\end{pmatrix} & \begin{pmatrix}
+\phantom{-}0.54\\
+-0.79\\
+-0.34\\
+\phantom{-}0.22
+\end{pmatrix} & \begin{pmatrix}
+-0.41\\
+\phantom{-}0.79\\
+\phantom{-}0.17\\
+\phantom{-}0.84
+\end{pmatrix} & \begin{pmatrix}
+-0.02\\
+\phantom{-}0.69\\
+\phantom{-}0.54\\
+-0.12
+\end{pmatrix}
+\end{array}
+$$
+:::
+:::{.incremental}
+- Embedding afhankelijk van context
+- Nog meer betekenis
+- Werkt empirisch erg goed!
+- De start van het nieuwe NLP-tijdperk ^[*Attention is all you need (https://arxiv.org/abs/1706.03762)*]
+:::
+
+## Hoe ziet attention eruit? {auto-animate="true"}
+![](figures/fully_connected.png){fig-align="center"}
+
+## Hoe ziet attention eruit? {auto-animate="true"}
+![](figures/fully_connected.png){.absolute left="70%" top="70%" width="auto" height="250px"}
+$$
+Attention \sim Query \cdot Key^{T} 
+$$
+
+:::{.incremental}
+- Conceptuele interpretatie:
+    - Query: Ik heb een *Persoonsvorm*, ik zoek een onderwerp!
+    - Key: Ik ben een *Onderwerp*. 
+:::
+
+## Hoe ziet attention eruit?
+
+::::{.center-iframe}
+<iframe width="1000px" height="1000px" justify-content=center src="./figures/html_head.html" ></iframe>
+::::
+
+::: aside
+[jessevig/bertviz](https://github.com/jessevig/bertviz)
+:::
+
+## Volgen jullie het nog? {auto-animate="true"}
+
+::::{.center-iframe} 
+<iframe width="1000px" height="1000px" src="./figures/html_transformer.html" scrollable="no"></iframe>
+::::
+
+::: aside
+[jessevig/bertviz](https://github.com/jessevig/bertviz)
+:::
+
+<!--
+```{python}
+#| echo: false
+# Load model and retrieve attention weights
+
+from bertviz import head_view, model_view
+from transformers import BertTokenizer, BertModel, RobertaTokenizer, RobertaModel
+
+model_version = 'roberta-base'
+model = RobertaModel.from_pretrained(model_version, output_attentions=True)
+tokenizer = RobertaTokenizer.from_pretrained(model_version)
+sentence_a = "The ROBERTA-model is learning how to read"
+inputs = tokenizer.encode_plus(sentence_a, return_tensors='pt')
+input_ids = inputs['input_ids']
+#token_type_ids = inputs['token_type_ids']
+attention = model(input_ids)[-1]
+input_id_list = input_ids[0].tolist() # Batch index 0
+tokens = tokenizer.convert_ids_to_tokens(input_id_list) 
+```
+
+```{python}
+#| fig-align: "center"
+model_view(attention, tokens)
+``` 
+
+```{python}
+#| fig-align: "center"
+head_view(attention, tokens)
+``` 
+-->
+
+```{python}
+#| echo: false
+# Base imports
+import os
+import re
+import pickle
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from matplotlib.colors import rgb2hex
+import plotly.graph_objects as go
+import plotly.io as pio
+
+# Set the random seed for reproducability
+import random
+random_seed = 2112
+random.seed(random_seed)
+np.random.seed(random_seed)
+
+# Set plotting settings
+plt.style.use('seaborn-darkgrid')
+plt.rcParams['figure.dpi'] = 125
+px = 1/plt.rcParams['figure.dpi'] 
+figsize= (int(1200*0.9), int(700*0.9)) #px
+figsize_inch = (figsize[0]*px, figsize[1]*px)
+
+# For Fitting distributions
+from scipy.stats import norm, lognorm, gamma, linregress
+from scipy.optimize import curve_fit
+from statsmodels.nonparametric.kde import KDEUnivariate
+from sklearn.metrics import mean_squared_error
+
+# For simple text processing
+from nltk.corpus import stopwords
+from nltk.tokenize import RegexpTokenizer, sent_tokenize
+
+# For complex text processing
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
+from sklearn.decomposition import NMF, MiniBatchNMF, LatentDirichletAllocation 
+from sklearn.preprocessing import normalize
+from bertopic import BERTopic
+from umap import UMAP
+from hdbscan import HDBSCAN
+from sentence_transformers import SentenceTransformer
+
+# For making Wordclouds
+from wordcloud import WordCloud
+
+# For neat progress bars
+from tqdm import tqdm
+
+# For neat typehinting in Python
+from typing import List, Union
+
+# Here we define some usefull utility-functions
+def write_pickle(path, object):
+    """
+    Pickle and save an object.
+
+    Parameters
+    ----------
+    path : str
+        Path to pickled file
+    object : any
+        An object to pickle
+    """    
+    with open(path, 'wb') as f:
+        pickle.dump(object, f)
+
+def read_pickle(path):
+    """
+    Read and return a pickled object.
+
+    Parameters
+    ----------
+    path : str
+        Path to pickled file
+
+    Returns
+    -------
+    any unpickled object(s)
+    """
+    with open(path, 'rb') as f:
+        object = pickle.load(f)
+    return object
+
+def read_txt_file(path):
+    """
+    read text file from path
+
+    Parameters
+    ----------
+    path : str
+        filepath
+
+    Returns
+    -------
+    text : str
+        contents of the file
+    """    
+    if not os.path.exists(path):
+        return np.nan
+
+    with open(path, "r") as f:
+        text = f.read()
+    return text
+
+with open("path_data.txt", "r") as f:
+  PATH = f.read()
+```
+
+```{python}
+#| echo: false
+data = pd.read_pickle(PATH+"extract_data/data.pickle")
+
+# Sort by episode number
+data = data.sort_values(["episode"]).reset_index(drop=True)
+
+# Read Corpus
+data["text"] = data["txt_path"].transform(lambda path: read_txt_file(PATH + "text_analysis/" + path))
+
+# Drop episodes that have not been transcribed yet
+data = data.dropna(subset=["text"]).reset_index(drop=True)
+
+# Check if file is a numbered episode
+# We also skip the trailer as it is episode 0
+data["is_episode"] = data["episode"].transform(lambda num: num > 0)
+
+data_full = data.copy()
+is_ep = (data.is_episode==True)
+data = data_full[is_ep].reset_index(drop=True)
+
+```
+
+## Het transformer-model
+![](./figures/transformers.jpg){fig-align="center"}
+
+## Het transformer-model voor Whisper
+![](figures/whisper_architecture.svg){fig-align="center"}
+
+## Podcast Data-collectie
+::: {style="text-align: center; margin-top: 1em"}
+[Maarten van Rossem - De Podcast - podcastluisteren.nl](https://podcastluisteren.nl/pod/Maarten-van-Rossem-De-Podcast){preview-link="true" style="text-align: center"}
+:::
+::: {.incremental}
+- Selenium webscraper
+- ~60 uur aan transcriptie-tijd via Whisper
+- ~14 euro aan electriciteit (prijsplafond)
+- Verwarmings-equivalent (3 $m^3$)
+:::
+
+## Hoe ziet de data eruit? {.smaller}
+- 5 formats: .txt, .srt, .vtt, .tsv, .json
+
+::::{.center-iframe-spotify}
+<iframe style="border-radius:12px" src="https://open.spotify.com/embed/episode/1DnLkjLdn102WXmJQ4G7Q0?utm_source=generator" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+::::
+
+::: {style="text-align: left; margin-top: 1em"}
+"Met Van Rossum, kunt u mij horen?
+Dag.
+Je luistert naar Maarten van Rossum, de podcast.
+Ik kan je niet horen.
+Ja, ik moet zeggen dat ik stad echt lamlendige lulkoeken eerste klas vind.
+En als ik een adviesje mag geven, dan zou ik zeggen neem Hugo de Jonge en niet Wopke.
+En waarom?
+Nou, omdat Wopke wel een beetje aan terminale arrogantie leidt." ...
+:::
+
+
+## Podcast statistieken - Steeds meer content!
+::: {layout-ncol=2}
+![](./figures/episode_duration.png)
+
+![](./figures/more_content.png)
+:::
+
+## Podcast statistieken - Goed om bij te slapen!
+::: {layout-ncol=2}
+![](./figures/tempo_audioboek.png)
+
+![](./figures/donderdag_afleveringen.png)
+:::
+- 150-160 WPM is het aangeraden tempo voor een luisterboek
+
+## Podcast statistieken - Wat zijn de meest gebruikte woorden? {visibility="hidden"}
+![](./figures/wordcloud.png){fig-align="center"}
+
+- 32 keer per aflevering 'natuurlijk!'
+- 16 keer per aflevering 'Beste mensen, ...'
+
+::::{.fragment}
+- Kunnen we ook iets zeggen over de onderwerpen?
+::::
+
+## BertTopic
+Een package gebasseerd op modulaire-onafhankelijke stappen:
+[https://maartengr.github.io/BERTopic/](https://maartengr.github.io/BERTopic/){preview-link="true" style="text-align: center"} ^[Een Python-package door Maarten Grootendorst
+]
+
+:::{.fragment .fade-out}
+![](./figures/berttopic.jpg){fig-align="center"}
+:::
+
+:::{.fragment}
+![](./figures/transformers.jpg){.absolute left="30%" top="21%" width="auto" height="600px"}
+:::
+
+
+## Topic Modeling 3D {auto-animate="true"}
+```{python}
+#| echo: false
+
+tokenizer = RegexpTokenizer(r"\w+")
+
+def get_length(text):
+    """
+    Calculates length of a text by counting the number of tokens.
+
+    Parameters
+    ----------
+    text : str
+        Text to process.
+
+    Returns
+    -------
+    _ : int
+        Length of text.
+    """
+    tokens = tokenizer.tokenize(text)
+    return len(tokens)
+
+def parse_srt(row):
+    """
+    Parse an .srt file into a dataframe with timestamps per line.
+
+    Parameters
+    ----------
+    row : pd.Series
+        entrie in data dataframe with episode information
+
+    Returns
+    -------
+    srt: pd.DataFrame
+        DataFrame with parsed .srt data
+    """
+    path = PATH+row.txt_path.replace("txt", "srt")[3:]
+    srt = read_txt_file(path).split("\n")
+
+    # The srt has a standard formatting:
+    # 1. Line number
+    # 2. Content
+    # 3. Timestamp
+    # Followed by a blank line
+    lines, timestamps, sentences = [], [], []
+    i = 0
+    while i < len(srt) - 1:
+        lines.append(srt[i])
+        timestamps.append(srt[i + 1])
+        sentences.append(srt[i + 2])
+        i += 4
+
+    # Get length of sentence
+    srt = pd.DataFrame(
+        {"lines": lines, "sentences": sentences, "timestamps": timestamps}
+    )
+    temp = srt["timestamps"].str.split("-->", n=1, expand=True)
+    srt["time_start"] = temp[0]
+    srt["time_start"] = srt["time_start"].str.replace(",", ".")
+    srt["time_end"] = temp[1]
+    srt["time_end"] = srt["time_end"].str.replace(",", ".")
+    srt["time_start"] = pd.to_timedelta(srt.time_start)
+    srt = srt.drop(columns="timestamps")
+    srt["time_end"] = pd.to_timedelta(srt.time_end)
+    srt["duration"] = pd.to_timedelta(
+        srt["time_end"] - srt["time_start"]
+    ).dt.total_seconds()
+
+    # Get cadence of episode
+    srt["length"] = srt["sentences"].transform(lambda text: get_length(text))
+
+    # Aggregate per minute
+    srt["minute"] = (srt.time_end.dt.total_seconds() // 60).astype("int")
+    srt = srt.groupby("minute").agg(
+        {"sentences": " ".join, "duration": "sum", "length": "sum"}
+    )
+    srt["WPM_line"] = srt["length"] / srt["duration"] * 60
+    srt = srt.reset_index()
+    srt["episode"] = path
+    srt["date"] = row.date
+    srt["titles"] = row.titles
+
+    # We drop the last minute as it contains the outro and adds.
+    # We also drop the first minute, as it contains the intro
+    srt = srt[1:-1]
+    # In a few files, Whisper had trouble picking up the audio.
+    # Only transcribing 1 line for more than a minute.
+    # To filter these bad lines out, we remove any minute with less than 90 words.and
+    # Also, in some episodes they listen to historic speeches, which are quite slow.
+    # We filter these 'bad'-lines out by setting a lower limit of 100 WPM
+    # This is not a problem, as it is far below even the lower bound of the speech rate.
+    srt = srt[srt.WPM_line >= 100]
+    return srt
+
+srts = []
+for _, row in data.iterrows():
+    srt = parse_srt(row)
+    srts.append(srt)
+
+
+docs = []
+titles = []
+timestamps = []
+for srt in srts:
+    for text_minute in srt["sentences"]:
+        docs.append(text_minute)
+        titles.append(srt.titles.iloc[0])
+        timestamps.append(srt.date.iloc[0])
+
+model_path = PATH+"text_analysis/"+"cache/BERTopic_topic_model.pickle"
+topic_model = BERTopic().load(model_path)
+
+embeddings_path = PATH+"text_analysis/"+"cache/embeddings.npy"
+embeddings = np.load(embeddings_path)
+
+reduced_embeddings_path = PATH+"text_analysis/"+"cache/reduced_embeddings.npy"
+reduced_embeddings = np.load(reduced_embeddings_path)
+
+reduced_embeddings_3d_path = PATH+"text_analysis/"+"cache/reduced_embeddings_3d.npy"
+n_neighbors = 15
+if not os.path.exists(reduced_embeddings_3d_path):
+    umap_model_3d = UMAP(
+        n_neighbors=n_neighbors,
+        n_components=3,
+        min_dist=0.0,
+        metric="cosine",
+        random_state=random_seed,
+    ).fit(embeddings)
+    reduced_embeddings_3d = umap_model_3d.embedding_
+    np.save(reduced_embeddings_3d_path, reduced_embeddings_3d)
+else:
+    reduced_embeddings_3d = np.load(reduced_embeddings_3d_path)
+```
+
+```{python}
+def visualize_documents_3d(topic_model,
+                        docs: List[str],
+                        topics: List[int] = None,
+                        embeddings: np.ndarray = None,
+                        reduced_embeddings: np.ndarray = None,
+                        sample: float = None,
+                        hide_annotations: bool = False,
+                        hide_document_hover: bool = False,
+                        custom_labels: bool = False,
+                        title: str = "<b>Documents and Topics</b>",
+                        width: int = 1200,
+                        height: int = 750):
+    """ Visualize documents and their topics in 3D
+    Arguments:
+        topic_model: A fitted BERTopic instance.
+        docs: The documents you used when calling either `fit` or `fit_transform`
+        topics: A selection of topics to visualize.
+                Not to be confused with the topics that you get from `.fit_transform`.
+                For example, if you want to visualize only topics 1 through 5:
+                `topics = [1, 2, 3, 4, 5]`.
+        embeddings: The embeddings of all documents in `docs`.
+        reduced_embeddings: The 3D reduced embeddings of all documents in `docs`.
+        sample: The percentage of documents in each topic that you would like to keep.
+                Value can be between 0 and 1. Setting this value to, for example,
+                0.1 (10% of documents in each topic) makes it easier to visualize
+                millions of documents as a subset is chosen.
+        hide_annotations: Hide the names of the traces on top of each cluster.
+        hide_document_hover: Hide the content of the documents when hovering over
+                             specific points. Helps to speed up generation of visualization.
+        custom_labels: Whether to use custom topic labels that were defined using 
+                       `topic_model.set_topic_labels`.
+        title: Title of the plot.
+        width: The width of the figure.
+        height: The height of the figure.
+    """
+    topic_per_doc = topic_model.topics_
+
+    # Sample the data to optimize for visualization and dimensionality reduction
+    if sample is None or sample > 1:
+        sample = 1
+
+    indices = []
+    for topic in set(topic_per_doc):
+        s = np.where(np.array(topic_per_doc) == topic)[0]
+        size = len(s) if len(s) < 100 else int(len(s) * sample)
+        indices.extend(np.random.choice(s, size=size, replace=False))
+    indices = np.array(indices)
+
+    df = pd.DataFrame({"topic": np.array(topic_per_doc)[indices]})
+    df["doc"] = [docs[index] for index in indices]
+    df["topic"] = [topic_per_doc[index] for index in indices]
+
+    # Extract embeddings if not already done
+    if sample is None:
+        if embeddings is None and reduced_embeddings is None:
+            embeddings_to_reduce = topic_model._extract_embeddings(df.doc.to_list(), method="document")
+        else:
+            embeddings_to_reduce = embeddings
+    else:
+        if embeddings is not None:
+            embeddings_to_reduce = embeddings[indices]
+        elif embeddings is None and reduced_embeddings is None:
+            embeddings_to_reduce = topic_model._extract_embeddings(df.doc.to_list(), method="document")
+
+    # Reduce input embeddings
+    if reduced_embeddings is None:
+        umap_model = UMAP(n_neighbors=10, n_components=3, min_dist=0.0, metric='cosine').fit(embeddings_to_reduce)
+        embeddings_3d = umap_model.embedding_
+    elif sample is not None and reduced_embeddings is not None:
+        embeddings_3d = reduced_embeddings[indices]
+    elif sample is None and reduced_embeddings is not None:
+        embeddings_3d = reduced_embeddings
+
+    unique_topics = set(topic_per_doc)
+    if topics is None:
+        topics = unique_topics
+
+    # Combine data
+    df["x"] = embeddings_3d[:, 0]
+    df["y"] = embeddings_3d[:, 1]
+    df["z"] = embeddings_3d[:, 2]
+
+
+    # Prepare text and names
+    if topic_model.custom_labels_ is not None and custom_labels:
+        names = [topic_model.custom_labels_[topic + topic_model._outliers] for topic in unique_topics]
+    else:
+        names = [f"{topic}_" + "_".join([word for word, value in topic_model.get_topic(topic)][:3]) for topic in unique_topics]
+
+    # Visualize
+    fig = go.Figure()
+
+    # Outliers and non-selected topics
+    non_selected_topics = set(unique_topics).difference(topics)
+    if len(non_selected_topics) == 0:
+        non_selected_topics = [-1]
+
+    selection = df.loc[df.topic.isin(non_selected_topics), :]
+    selection["text"] = ""
+    selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), selection.z.mean(), "Other documents"]
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=selection.x,
+            y=selection.y,
+            z=selection.z,
+            hovertext=selection.doc if not hide_document_hover else None,
+            hoverinfo="text",
+            mode='markers+text',
+            name="other",
+            textfont=dict(
+                size=12,
+            ),
+            showlegend=False,
+            marker=dict(color='#CFD8DC', size=2, opacity=0.2)
+        )
+    )
+    annotations = df[0:0] 
+    annotations["text"] = None
+    # Selected topics
+    for name, topic in zip(names, unique_topics):
+        if topic in topics and topic != -1:
+            selection = df.loc[df.topic == topic, :]
+            selection["text"] = ""
+
+            if not hide_annotations:
+                selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), selection.z.mean(), name]
+                annotations.loc[len(annotations), :] = [None, None, selection.x.mean(), selection.y.mean(), selection.z.mean(), name]
+
+
+            fig.add_trace(
+                go.Scatter3d(
+                    x=selection.x,
+                    y=selection.y,
+                    z=selection.z,
+                    hovertext=selection.doc if not hide_document_hover else None,
+                    hoverinfo="text",
+                    mode='markers+text',
+                    textfont=dict(
+                        size=20,
+                    ),
+                    name=name,
+                    marker=dict(size=4, opacity=0.2)
+                )
+            )
+
+    # Add 3D axis lines
+    axis_line_color = "#CFD8DC"
+    axis_line_width = 3
+
+    # Add grid in a 'plus' shape
+    x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
+    y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
+    z_range = (df.z.min() - abs((df.z.min()) * .15), df.z.max() + abs((df.z.max()) * .15))
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=[x_range[0], x_range[1]], y=[sum(y_range) / 2] * 2, z=[sum(z_range) / 2] * 2,
+            mode='lines',
+            line=dict(color=axis_line_color, width=axis_line_width),
+            showlegend=False
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=[sum(x_range) / 2] * 2, y=[y_range[0], y_range[1]], z=[sum(z_range) / 2] * 2,
+            mode='lines',
+            line=dict(color=axis_line_color, width=axis_line_width),
+            showlegend=False
+        )
+    )
+
+    fig.add_trace(
+        go.Scatter3d(
+            x=[sum(x_range) / 2] * 2, y=[sum(y_range) / 2] * 2, z=[z_range[0], z_range[1]],
+            mode='lines',
+            line=dict(color=axis_line_color, width=axis_line_width),
+            showlegend=False
+        )
+    )
+
+    # Stylize layout
+    fig.update_layout(
+        template="simple_white",
+        title={
+            'text': f"{title}",
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(
+                size=22,
+                color="Black")
+        },
+        scene=dict(
+            camera=dict(
+                eye=dict(x=.75, y=.75, z=.75)
+            ),
+            annotations=[*([dict(
+                x=row['x'],
+                y=row['y'],
+                z=row['z'],
+                text=row['text'],
+                showarrow=False,
+                font=dict(size=12),
+                opacity=0.8,
+                ax=0,
+                ay=0,
+            ) for _, row in annotations.iterrows()] if not hide_annotations else []),
+                dict(
+                    x=x_range[0], y=sum(y_range) / 2, z=sum(z_range) / 2, text="D1", showarrow=False, yshift=10
+                ),
+                dict(
+                    y=y_range[0], z=sum(z_range) / 2, x=sum(x_range) / 2, text="D2", showarrow=False, yshift=10
+                ),
+                dict(
+                    z=z_range[1], x=sum(x_range) / 2, y=sum(y_range) / 2, text="D3", showarrow=False, yshift=10
+                ),
+            ],
+            xaxis=dict(showticklabels=False, visible=False),
+            yaxis=dict(showticklabels=False, visible=False),
+            zaxis=dict(showticklabels=False, visible=False)
+        ),
+        width=width,
+        height=height
+    )
+    return fig
+```
+
+::::{.center-iframe2}
+```{python}
+#| fig-align: "center"
+# Manually selected some interesting topics to prevent information overload
+topics_of_interest = list(range(0, 25))
+# I added the title to the documents themselves for easier interactivity
+adjusted_docs = [
+    "<b>" + title + "</b><br>" for title in titles
+]
+fig_visualize_documents_3d = visualize_documents_3d(
+    topic_model,
+    adjusted_docs,
+    reduced_embeddings=reduced_embeddings_3d,
+    hide_annotations=False,
+    topics=topics_of_interest,
+    custom_labels=True,
+    width=figsize[0],
+    height=figsize[1],
+    sample=0.25
+)
+fig_visualize_documents_3d.show()
+```
+::::
+
+
+
+## Topic Modeling 2D {auto-animate="true"}
+
+```{python}
+def visualize_documents(topic_model,
+                        docs: List[str],
+                        topics: List[int] = None,
+                        embeddings: np.ndarray = None,
+                        reduced_embeddings: np.ndarray = None,
+                        sample: float = None,
+                        hide_annotations: bool = False,
+                        hide_document_hover: bool = False,
+                        custom_labels: bool = False,
+                        title: str = "<b>Documents and Topics</b>",
+                        width: int = 1200,
+                        height: int = 750):
+    """ Visualize documents and their topics in 2D
+    Arguments:
+        topic_model: A fitted BERTopic instance.
+        docs: The documents you used when calling either `fit` or `fit_transform`
+        topics: A selection of topics to visualize.
+                Not to be confused with the topics that you get from `.fit_transform`.
+                For example, if you want to visualize only topics 1 through 5:
+                `topics = [1, 2, 3, 4, 5]`.
+        embeddings: The embeddings of all documents in `docs`.
+        reduced_embeddings: The 2D reduced embeddings of all documents in `docs`.
+        sample: The percentage of documents in each topic that you would like to keep.
+                Value can be between 0 and 1. Setting this value to, for example,
+                0.1 (10% of documents in each topic) makes it easier to visualize
+                millions of documents as a subset is chosen.
+        hide_annotations: Hide the names of the traces on top of each cluster.
+        hide_document_hover: Hide the content of the documents when hovering over
+                             specific points. Helps to speed up generation of visualization.
+        custom_labels: Whether to use custom topic labels that were defined using 
+                       `topic_model.set_topic_labels`.
+        title: Title of the plot.
+        width: The width of the figure.
+        height: The height of the figure.
+    """
+    topic_per_doc = topic_model.topics_
+
+    # Sample the data to optimize for visualization and dimensionality reduction
+    if sample is None or sample > 1:
+        sample = 1
+
+    indices = []
+    for topic in set(topic_per_doc):
+        s = np.where(np.array(topic_per_doc) == topic)[0]
+        size = len(s) if len(s) < 100 else int(len(s) * sample)
+        indices.extend(np.random.choice(s, size=size, replace=False))
+    indices = np.array(indices)
+
+    df = pd.DataFrame({"topic": np.array(topic_per_doc)[indices]})
+    df["doc"] = [docs[index] for index in indices]
+    df["topic"] = [topic_per_doc[index] for index in indices]
+
+    # Extract embeddings if not already done
+    if sample is None:
+        if embeddings is None and reduced_embeddings is None:
+            embeddings_to_reduce = topic_model._extract_embeddings(df.doc.to_list(), method="document")
+        else:
+            embeddings_to_reduce = embeddings
+    else:
+        if embeddings is not None:
+            embeddings_to_reduce = embeddings[indices]
+        elif embeddings is None and reduced_embeddings is None:
+            embeddings_to_reduce = topic_model._extract_embeddings(df.doc.to_list(), method="document")
+
+    # Reduce input embeddings
+    if reduced_embeddings is None:
+        umap_model = UMAP(n_neighbors=10, n_components=2, min_dist=0.0, metric='cosine').fit(embeddings_to_reduce)
+        embeddings_2d = umap_model.embedding_
+    elif sample is not None and reduced_embeddings is not None:
+        embeddings_2d = reduced_embeddings[indices]
+    elif sample is None and reduced_embeddings is not None:
+        embeddings_2d = reduced_embeddings
+
+    unique_topics = set(topic_per_doc)
+    if topics is None:
+        topics = unique_topics
+
+    # Combine data
+    df["x"] = embeddings_2d[:, 0]
+    df["y"] = embeddings_2d[:, 1]
+
+    # Prepare text and names
+    if topic_model.custom_labels_ is not None and custom_labels:
+        names = [topic_model.custom_labels_[topic + topic_model._outliers] for topic in unique_topics]
+    else:
+        names = [f"{topic}_" + "_".join([word for word, value in topic_model.get_topic(topic)][:3]) for topic in unique_topics]
+
+    # Visualize
+    fig = go.Figure()
+
+    # Outliers and non-selected topics
+    non_selected_topics = set(unique_topics).difference(topics)
+    if len(non_selected_topics) == 0:
+        non_selected_topics = [-1]
+
+    selection = df.loc[df.topic.isin(non_selected_topics), :]
+    selection["text"] = ""
+    selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), "Other documents"]
+
+    fig.add_trace(
+        go.Scattergl(
+            x=selection.x,
+            y=selection.y,
+            hovertext=selection.doc if not hide_document_hover else None,
+            hoverinfo="text",
+            mode='markers+text',
+            name="other",
+            showlegend=False,
+            marker=dict(color='#CFD8DC', size=5, opacity=0.5)
+        )
+    )
+
+    # Selected topics
+    for name, topic in zip(names, unique_topics):
+        if topic in topics and topic != -1:
+            selection = df.loc[df.topic == topic, :]
+            selection["text"] = ""
+
+            if not hide_annotations:
+                selection.loc[len(selection), :] = [None, None, selection.x.mean(), selection.y.mean(), name]
+
+            fig.add_trace(
+                go.Scattergl(
+                    x=selection.x,
+                    y=selection.y,
+                    hovertext=selection.doc if not hide_document_hover else None,
+                    hoverinfo="text",
+                    text=selection.text,
+                    mode='markers+text',
+                    name=name,
+                    textfont=dict(
+                        size=12,
+                    ),
+                    marker=dict(size=5, opacity=0.5)
+                )
+            )
+
+    # Add grid in a 'plus' shape
+    x_range = (df.x.min() - abs((df.x.min()) * .15), df.x.max() + abs((df.x.max()) * .15))
+    y_range = (df.y.min() - abs((df.y.min()) * .15), df.y.max() + abs((df.y.max()) * .15))
+    fig.add_shape(type="line",
+                  x0=sum(x_range) / 2, y0=y_range[0], x1=sum(x_range) / 2, y1=y_range[1],
+                  line=dict(color="#CFD8DC", width=2))
+    fig.add_shape(type="line",
+                  x0=x_range[0], y0=sum(y_range) / 2, x1=x_range[1], y1=sum(y_range) / 2,
+                  line=dict(color="#9E9E9E", width=2))
+    fig.add_annotation(x=x_range[0], y=sum(y_range) / 2, text="D1", showarrow=False, yshift=10)
+    fig.add_annotation(y=y_range[1], x=sum(x_range) / 2, text="D2", showarrow=False, xshift=10)
+
+    # Stylize layout
+    fig.update_layout(
+        template="simple_white",
+        title={
+            'text': f"{title}",
+            'x': 0.5,
+            'xanchor': 'center',
+            'yanchor': 'top',
+            'font': dict(
+                size=22,
+                color="Black")
+        },
+        width=width,
+        height=height
+    )
+
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False)
+    return fig
+```
+
+::::{.center-iframe2}
+```{python}
+#| fig-align: center
+
+# Manually selected some interesting topics to prevent information overload
+topics_of_interest = list(range(0, 50))
+# I added the title to the documents themselves for easier interactivity
+adjusted_docs = [
+    "<b>" + title + "</b><br>" + doc[:100] + "..." for doc, title in zip(docs, titles)
+]
+
+fig_visualize_documents = visualize_documents(
+    topic_model,
+    adjusted_docs,
+    reduced_embeddings=reduced_embeddings,
+    hide_annotations=False,
+    topics=topics_of_interest,
+    custom_labels=True,
+    width=figsize[0],
+    height=figsize[1],
+    sample=0.25
+)
+fig_visualize_documents.show()
+```
+::::
+
+
+
+## Hierarchie in onderwerpen {.scrollable}
+::::{.center-iframe}
+```{python}
+#| fig-align: "center"
+hierarchical_topics = topic_model.hierarchical_topics(adjusted_docs)
+
+fig_topic_hierarchy = topic_model.visualize_hierarchy(
+    hierarchical_topics=hierarchical_topics, 
+    width = figsize[0],
+    height = figsize[1],
+    color_threshold = 1.4,
+)
+fig_topic_hierarchy.show()
+```
+::::
+## Het volgen van Actualiteiten in de Podcast
+![](./figures/topics_over_time.png){}
+
+## variaties
+- Nu hebben we alleen gekeken naar unsupervised, maar er zijn veel variaties:
+
+![](./figures/BERTOPIC_variations.png){fig-align="center"}
+
+## Toepassingen
+- Whisper:
+    - Lokale transcriptie van interviews/meetings etc.
+        - van 4u30m werk per uur interview -> 1u15m werk per uur interview
+- BERTopic:
+    - Clustering van relevante nieuwsberichten.
+    - Exploratie/categorisatie van onderwerpen in interne-documenten/contracten/accountantscontroles/jaarverslagen 
+
+## Beperkingen Whisper & BertTopic
+- Whisper:
+    - 8 minuten rekentijd per uur dialoog op RTX-3090
+    - 12 uur rekentijd per uur dialoog op CPU (6-cores) (100x trager)
+    - Geen Diarization (annotatie sprekers)
+
+- BertTopic
+    - Hoe bepaal je wat goede clusters zijn?
+    - Hoe breng je het in productie?
+
+:::: {.fragment}
+![](./figures/clustering.png){.absolute left="50%" top="12%" width="auto" height="600px"}
+::::
+
+## Doel gehaald?
+::::{.fragment}
+::::{.center-iframe-spotify}
+<iframe style="border-radius:12px" src="https://open.spotify.com/embed/episode/3JHik9M5qlP7SawXlruz9x?utm_source=generator&t=1633716" width="100%" height="352" frameBorder="0" allowfullscreen="" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+::::
+::::
+
+## Aknowledgements
+- Maarten Grootendorst
+
+::::{.fragment}
+- OpenAI's ChatGPT
+::::
+::::{.fragment}
+![](figures/chatgpt.png){fig-align="center"}
+::::
